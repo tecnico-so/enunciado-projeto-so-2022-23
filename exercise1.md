@@ -94,13 +94,13 @@ Consequentemente, caso o ficheiro "/path\_B/file\_name" venha a ser apagado apó
 
 Para a criação de _hard/soft link_ deverão ser implementadas as seguintes funções:
 
-`int link(char const *target_file, char const *source_file)` _// cria um hard link_
+`int tfs_link(char const *target_file, char const *source_file)` // cria um _hard link_
 
-`int sym_link(char const *target_file, char const *source_file)` _// cria um soft link_
+`int tfs_sym_link(char const *target_file, char const *source_file)` // cria um _soft link_
 
 Pretende-se também implementar uma função que permite apagar ficheiros e _links_:
 
-`int unlink(char const *target)`
+`int tfs_unlink(char const *target)`
 
 Simplificações/observações:
 

@@ -41,6 +41,7 @@ A tabela de ficheiros abertos é descartada quando o sistema é desligado ou ter
 
 Nas aulas teóricas da 2ª semana, o código base será apresentado e discutido.
 Recomendamos a todos os estudantes que frequentem essas aulas antes de começarem a desenvolver a solução.
+Podem também consultar o [diagrama](img/tecnicofs.png) apresentado nessas aulas.
 
 ## Simplificações
 

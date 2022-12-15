@@ -128,7 +128,7 @@ Além da adaptação do TecnicoFS para o tornar _thread-safe,_ cada grupo deve *
 
 ## Submissão e avaliação
 
-A submissão é feita através do Fénix **até ao dia 19/Dezembro/2022 às 17h00**.
+A submissão é feita através do Fénix **até terça-feira, dia 20/Dezembro/2022, às 23h59**.
 
 Os estudantes devem submeter um ficheiro no formato `zip` com o código fonte e o ficheiro `Makefile`.
 O arquivo submetido não deve incluir outros ficheiros (tais como binários).

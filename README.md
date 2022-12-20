@@ -6,7 +6,7 @@ Enunciado do projeto do ano letivo 2022-23, 1º semestre, 2º período
 
 - [Exercício 1](exercise1.md)
 
-- Exercício 2
+- [Exercício 2](exercise2.md)
 
 ----
 

@@ -18,7 +18,7 @@ No entanto, para simplificar o projeto, a API do TecnicoFS oferece apenas um sub
 
 Além destas funções, existem as funções de inicialização e destruição do sistema de ficheiros, `tfs_init` e `tfs_destroy`.
 
-O código fonte do TecnicoFS encontra-se disponível [neste repositório](https://github.com/tecnico-so/projeto-so-2022-23).
+O código fonte do TecnicoFS encontra-se disponível [neste repositório](https://github.com/tecnico-so/projeto-so-2022-23/tree/ex1).
 A descrição detalhada de cada função pode ser encontrada na documentação no código fonte do TecnicoFS.
 
 ## Estado do sistema de ficheiros

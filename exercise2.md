@@ -5,8 +5,7 @@ O sistema vai ter um processo servidor autónomo, ao qual diferentes processos c
 
 ## Ponto de partida
 
-Para resolver o segundo exercício, os grupos devem usar como base a sua solução do 1º exercício ou aceder ao novo código base.
-Este código base estende a versão original do TecnicoFS das seguintes maneiras:
+Para resolver o segundo exercício, os grupos devem usar como base a sua solução do 1º exercício ou [aceder ao novo código base](https://github.com/tecnico-so/projeto-so-2022-23/), que estende a versão original do TecnicoFS das seguintes maneiras:
 
 - As operações principais do TecnicoFS estão sincronizadas usando um único trinco (_mutex_) global.
 Embora menos paralela que a solução pretendida para o primeiro exercício, esta solução de sincronização é suficiente para implementar os novos requisitos;

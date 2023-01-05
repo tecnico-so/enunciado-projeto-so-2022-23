@@ -9,16 +9,16 @@ Para resolver o segundo exercício, os grupos devem usar como base a sua soluç�
 
 - As operações principais do TecnicoFS estão sincronizadas usando um único trinco (_mutex_) global.
 Embora menos paralela que a solução pretendida para o primeiro exercício, esta solução de sincronização é suficiente para implementar os novos requisitos;
-- É implementado a operação `tfs_unlink`, que permite remover ficheiros.
+- É implementada a operação `tfs_unlink`, que permite remover ficheiros.
 
 Adicionalmente, o código base inclui esqueletos para:
 
 1. O programa do servidor _mbroker_ (na diretoria `mbroker`);
 2. A implementação do cliente para publicação (na diretoria `publisher`);
 3. A implementação do cliente para subscrição (na diretoria `subscriber`);
-4. A implementação do cliente de gestão (directoria `manager`).
+4. A implementação do cliente de gestão (diretoria `manager`).
 
-Em vez do novo código base, os grupos que tenham uma solução robusta no 1º exercício são encorajados a construírem a solução com base na sua versão, que à partida estará mais otimizada em termos de concorrência.
+Em vez do novo código base, os grupos que tenham uma solução robusta no 1º exercício são encorajados a construírem a solução com base na sua versão, que, à partida, estará mais otimizada em termos de concorrência.
 
 ## 1. Arquitetura do sistema
 
@@ -30,7 +30,7 @@ Um conceito fundamental do sistema são as caixas de mensagens.
 Cada caixa pode ter um publicador e múltiplos subscritores.
 O _publisher_ coloca mensagens na caixa, e os vários _subscribers_ lêem as mensagens da caixa.
 Cada caixa é suportada no servidor por um ficheiro no TFS.
-Por esta razão, o ciclo de vida de uma caixa é distinto do ciclo de vida do _publisher_ que lá publica mensagens. 
+Por esta razão, o ciclo de vida de uma caixa é distinto do ciclo de vida do _publisher_ que lá publica mensagens.
 Aliás, é possível que uma caixa venha a ter vários _publishers_ ao longo da sua existência, embora apenas um de cada vez.
 
 As operações de criação e remoção de caixa são geridas pelo _manager_.
@@ -44,12 +44,13 @@ O servidor incorpora o TecnicoFS e é um processo autónomo, inicializado da seg
 $ mbroker <pipename> <max_sessions>
 ```
 
-O servidor cria um _named pipe_ cujo nome (_pipename_) é o indicado no argumento acima.
+O servidor cria um _named pipe_ cujo nome é o indicado no argumento acima.
 É através deste _named pipe_, criado pelo servidor, que os processos cliente se poderão ligar para se registarem.
 
 Qualquer processo cliente pode ligar-se ao _named pipe_ do servidor e enviar-lhe uma mensagem a solicitar o início de uma sessão.
 Uma **sessão** consiste em ter um _named pipe_ do cliente, onde o cliente envia as mensagens (se for um publicador) ou onde o cliente recebe mensagens (se for um subscritor).
-Um dado cliente apenas assume um dos dois papéis, ou seja, ou é exclusivamente publicador e só envia informação para o servidor, ou é exclusivamente subscritor (ou gestor) e só recebe informação.
+Existe também o _manager_.
+Um dado cliente apenas assume um papel, ou seja, ou é exclusivamente publicador, subscritor, ou gestor.
 
 O _named pipe_ da sessão deve ser criado previamente pelo cliente.
 Na mensagem de registo, o cliente envia o nome do _named pipe_ a usar durante a sessão.
@@ -63,7 +64,7 @@ O servidor aceita um número máximo de sessões em simultâneo, definido pelo v
 
 Nas subsecções seguintes descrevemos o protocolo cliente-servidor em maior detalhe, i.e., o conteúdo das mensagens de pedido e resposta trocadas entre clientes e servidor.
 
-#### 1.1.1. Arquitectura do servidor
+#### 1.1.1. Arquitetura do servidor
 
 O servidor deve ter uma _thread_ para gerir o _named pipe_ de registo e lançar `max_sessions` threads para processar sessões.
 Quando chega um novo pedido de registo, este deve ser enviado para uma _thread_ que se encontre disponível, que irá processá-lo durante o tempo necessário. 
@@ -93,9 +94,6 @@ Uma **mensagem** corresponde a uma linha do `stdin`, sendo truncada a um dado va
 A mensagem não deve incluir um `\n` final.
 
 Se o _publisher_ receber um EOF (_End Of File_, por exemplo, com um Ctrl-D), deve encerrar a sessão fechando o _named pipe_.
-
-O nome do _named pipe_ da sessão é escolhido automaticamente pelo _publisher_, de forma a garantir que não existem conflitos com outros clientes concorrentes.
-O _named pipe_ deve ser removido do sistema de ficheiros após o fim da sessão.
 
 ### 1.3. _Subscriber_
 
@@ -190,7 +188,7 @@ Pedido de criação de caixa:
 Resposta ao pedido de criação de caixa:
 
 ```
-[ code = 4 (uint8_t) ] | [ return_code (int32_t) ] | [ error message (char[1024]) ]
+[ code = 4 (uint8_t) ] | [ return_code (int32_t) ] | [ error_message (char[1024]) ]
 ```
 
 O return code deve ser `0` se a caixa foi criada com sucesso, e `-1` em caso de erro.
@@ -205,7 +203,7 @@ Pedido de remoção de caixa:
 Resposta ao pedido de remoção de caixa:
 
 ```
-[ code = 6 (uint8_t) ] | [ return_code (int32_t) ] | [ error message (char[1024]) ]
+[ code = 6 (uint8_t) ] | [ return_code (int32_t) ] | [ error_message (char[1024]) ]
 ```
 
 Pedido de listagem de caixas:
@@ -225,7 +223,7 @@ O byte `last` é `1` se esta for a última caixa da listagem e a `0` em caso con
 
 ### 2.2 _Publisher_
 
-O _publisher_ envia mensagens para o servidor do tipo:
+O publicador envia mensagens para o servidor do tipo:
 
 ```
 [ code = 9 (uint8_t) ] | [ message (char[1024]) ]
@@ -233,7 +231,7 @@ O _publisher_ envia mensagens para o servidor do tipo:
 
 ### 2.3 _Subscriber_
 
-O servidor envia mensagens para o _subscriber_ do tipo:
+O servidor envia mensagens para o subscritor do tipo:
 
 ```
 [ code = 10 (uint8_t) ] | [ message (char[1024]) ]
@@ -257,7 +255,7 @@ Todas as mensagens que vão sendo recebidas são escritas no fim do ficheiro, se
 Resumindo, as mensagens são acumuladas nas caixas.
 Quando um subscritor se liga a uma caixa, o ficheiro correspondente é aberto e as mensagens começam a ser lidas desde o início (mesmo que o mesmo subscritor ou outro já as tenha recebido antes).
 Ulteriores mensagens geradas pelo _publisher_ de uma caixa deverão ser também entregues aos _subscribers_ da caixa.
-Esta funcionalidade deverá ser implementada usando **variáveis de condição** com o objetivo de evitar esperas ativas. 
+Esta funcionalidade deverá ser implementada usando **variáveis de condição** com o objetivo de evitar esperas ativas.
 
 ### 3.3 Formatação de mensagens
 

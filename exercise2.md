@@ -146,7 +146,7 @@ Num segundo **exemplo**, mais interessante, vai existir **concorrência** entre 
  1. Um _publisher_ liga-se;
  2. Entretanto, um _subscriber_ para a mesma caixa, liga-se também;
  3. O _publisher_ coloca mensagens na caixa e estas vão sendo entregues imediatamente ao _subscriber_, ficando à mesma registadas no ficheiro;
- 4. Um outro _subscriber_ liga-se à mesma caixa, e começa a receber as mensagens todas desde o início da sua subscrição;
+ 4. Um outro _subscriber_ liga-se à mesma caixa, e começa a receber as mensagens todas desde o início;
  5. Agora, quando o _publisher_ escreve uma nova mensagem, ambos os _subscriber_ recebem a mensagem diretamente.
 
 ## 2. Protocolo
@@ -158,8 +158,8 @@ O conteúdo de cada mensagem deve seguir o seguinte formato, onde:
 
 - O símbolo `|` denota a concatenação de elementos numa mensagem;
 - Todas as mensagens de pedido são iniciadas por um código que identifica a operação solicitada (`OP_CODE`);
-- As _strings_ que transportam os nomes de _named pipes_ são de tamanho fixo, indicado na mensagem.
-No caso de nomes de tamanho inferior, os caracteres adicionais devem ser preenchidos com `\0`.
+- As _strings_ que transportam, por exemplo, os nomes de _named pipes_ são de tamanho fixo, indicado na mensagem.
+No caso de texto com tamanho inferior, os caracteres adicionais devem ser preenchidos com `\0`.
 
 ### 2.1. Registo
 

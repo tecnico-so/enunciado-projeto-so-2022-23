@@ -41,7 +41,7 @@ Adicionalmente, o _manager_ permite listar as caixas existentes na _mbroker_.
 O servidor incorpora o TecnicoFS e é um processo autónomo, inicializado da seguinte forma:
 
 ```sh
-$ mbroker <pipename> <max_sessions>
+$ mbroker <register_pipe_name> <max_sessions>
 ```
 
 O servidor cria um _named pipe_ cujo nome é o indicado no argumento acima.
@@ -55,10 +55,14 @@ Um dado cliente apenas assume um papel, ou seja, ou é exclusivamente publicador
 O _named pipe_ da sessão deve ser criado previamente pelo cliente.
 Na mensagem de registo, o cliente envia o nome do _named pipe_ a usar durante a sessão.
 
+O nome do _named pipe_ da sessão deve ser escolhido manualmente quando um cliente é lançado e de forma a garantir que não existem conflitos com outros clientes concorrentes.
+
 Uma sessão mantém-se aberta até que aconteça uma das seguintes situações:
 
-1. Um cliente (publicador ou subscritor) feche o seu _named pipe_, sinalizando implicitamente o fim de sessão;
+1. Um cliente feche o seu _named pipe_, sinalizando implicitamente o fim de sessão;
 2. A caixa é removida pelo gestor.
+
+O _named pipe_ deve ser removido do sistema de ficheiros pelo respetivo cliente após o fim da sessão.
 
 O servidor aceita um número máximo de sessões em simultâneo, definido pelo valor do argumento `max_sessions`.
 
@@ -66,8 +70,8 @@ Nas subsecções seguintes descrevemos o protocolo cliente-servidor em maior det
 
 #### 1.1.1. Arquitetura do servidor
 
-O servidor deve ter uma _thread_ para gerir o _named pipe_ de registo e lançar `max_sessions` threads para processar sessões.
-Quando chega um novo pedido de registo, este deve ser enviado para uma _thread_ que se encontre disponível, que irá processá-lo durante o tempo necessário. 
+O servidor deve usar a _main thread_ para gerir o _named pipe_ de registo e lançar `max_sessions` _threads_ para processar sessões.
+Quando chega um novo pedido de registo, este deve ser encaminhado para uma _thread_ que se encontre disponível, que irá processá-lo durante o tempo necessário.
 Para gerir estes pedidos, evitando que as _threads_ fiquem em espera ativa, a _main thread_ e as _worker threads_ cooperam utilizando uma **fila produtor-consumidor**, segundo a interface disponibilizada no ficheiro `producer-consumer.h`.
 Desta forma, quando chega um novo pedido de registo, este é colocado na fila e assim que uma _thread_ fique disponível, irá consumir e tratar esse pedido.
 
@@ -85,11 +89,11 @@ A arquitetura do servidor está sumarizada na seguinte figura:
 Um publicador é um processo lançado da seguinte forma:
 
 ```sh
-pub <register_pipe> <pipe_name> <box_name>
+pub <register_pipe_name> <pipe_name> <box_name>
 ```
 
 Assim que é lançado, o _publisher_, pede para iniciar uma sessão no servidor de _mbroker_, indicando a caixa de mensagens para a qual pretende escrever mensagens.
-Se a ligação for aceite (pode ser rejeitada caso já haja um _publisher_ ligado à caixa, por exemplo) fica a receber mensagens do `stdin` e depois publica-as. 
+Se a ligação for aceite (pode ser rejeitada caso já haja um _publisher_ ligado à caixa, por exemplo) fica a receber mensagens do `stdin` e depois publica-as.
 Uma **mensagem** corresponde a uma linha do `stdin`, sendo truncada a um dado valor máximo e delimitada por um `\0`, como uma _string_ de C.
 A mensagem não deve incluir um `\n` final.
 
@@ -100,7 +104,7 @@ Se o _publisher_ receber um EOF (_End Of File_, por exemplo, com um Ctrl-D), dev
 Um subscritor é um processo lançado da seguinte forma:
 
 ```sh
-sub <register_pipe> <pipe_name> <box_name>
+sub <register_pipe_name> <pipe_name> <box_name>
 ```
 
 Assim que é lançado, o _subscriber_:
@@ -112,17 +116,14 @@ Assim que é lançado, o _subscriber_:
 
 Para terminar o _subscriber_, este deve processar adequadamente o `SIGINT` (i.e., o Ctrl-C), fechando a sessão e imprimindo no `stdout` o número de mensagens recebidas durante a sessão.
 
-O nome do _named pipe_ da sessão é escolhido automaticamente pelo _subscriber_, de forma a garantir que não existem conflitos com outros clientes concorrentes.
-O _named pipe_ deve ser removido do sistema de ficheiros após o fim da sessão.
-
 ### 1.4. _Manager_
 
 Um gestor é um processo lançado de uma das seguintes formas:
 
 ```sh
-manager <register_pipe> <pipe_name> create <box_name>
-manager <register_pipe> <pipe_name> remove <box_name>
-manager <register_pipe> <pipe_name> list
+manager <register_pipe_name> <pipe_name> create <box_name>
+manager <register_pipe_name> <pipe_name> remove <box_name>
+manager <register_pipe_name> <pipe_name> list
 ```
 
 Assim que é lançado, o _manager_:
@@ -130,9 +131,6 @@ Assim que é lançado, o _manager_:
  1. Envia o pedido à _mbroker_;
  2. Recebe a resposta no _named pipe_ criado pelo próprio _manager_;
  3. Imprime a resposta e termina.
-
-O nome do _named pipe_ da sessão é escolhido automaticamente pelo _manager_, de forma a garantir que não existem conflitos com outros clientes concorrentes.
-O _named pipe_ deve ser removido do sistema de ficheiros antes do _manager_ terminar.
 
 ### 1.5. Exemplos de execução
 
@@ -219,7 +217,9 @@ A resposta à listagem de caixas vem em várias mensagens, do seguinte tipo:
 ```
 
 O byte `last` é `1` se esta for a última caixa da listagem e a `0` em caso contrário.
-`box_size` é o tamanho (em _bytes_) da caixa, com `n_publisher` (`0` ou `1`) indicando se existe um _publisher_ ligado à caixa naquele momento, e `n_subscriber` o número de subscritores da caixa naquele momento.
+`box_size` é o tamanho (em _bytes_) da caixa, `n_publisher` (`0` ou `1`) indica se existe um _publisher_ ligado à caixa naquele momento e `n_subscriber` indica o número de subscritores da caixa naquele momento.
+
+Se não existirem caixas, a resposta é uma mensagem com `last` a `1` e `box_name` toda preenchida com `\0`.
 
 ### 2.2 _Publisher_
 
@@ -275,6 +275,20 @@ De resto, os grupos são livres de alterar o código base como lhes for convenie
 fprintf(stdout, "%s\n", message);
 ```
 
+#### Resultados das operações do gestor
+
+Se o comando de criação ou remoção de caixa for bem sucedido, deve imprimir-se:
+
+```c
+fprintf(stdout, "OK\n");
+```
+
+Se tiver ocorrido um erro:
+
+```c
+fprintf(stdout, "ERROR %s\n", error_message);
+```
+
 #### Listagem de caixas
 
 Cada linha da listagem de caixas deve ser impressa da seguinte forma:
@@ -285,9 +299,15 @@ fprintf(stdout, "%s %zu %zu %zu\n", box_name, box_size, n_publishers, n_subscrib
 
 As caixas devem estar ordenadas por ordem alfabética, não sendo garantido que o servidor as envie por essa ordem (i.e., o cliente deve ordenar as caixas antes das imprimir).
 
+Se não existirem caixas, deve ser impresso o seguinte:
+
+```c
+fprintf(stdout, "NO BOXES FOUND\n");
+```
+
 ### 3.5 Espera Ativa
 
-No projeto, nunca devem ser usados mecanismos de espera ativa.
+No projeto, **nunca** devem ser usados mecanismos de espera ativa.
 
 ## 4. Sugestão de implementação
 
